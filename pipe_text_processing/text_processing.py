@@ -1,7 +1,11 @@
 from typing import List
+import re
+_CLEAR_PATTERN = re.compile(r'[^а-яё\s\.\,\;:\-]+', flags=re.IGNORECASE | re.UNICODE)
 
 
 def create_items_from_text(text: str, min_words_cnt, split_paragraphs, merge_paragraphs) -> List[str]:
+    text = _CLEAR_PATTERN.sub('', text).strip()
+
     if not split_paragraphs and min_words_cnt > 0:
         return [text] if len(text) > min_words_cnt else []
     elif not split_paragraphs:
