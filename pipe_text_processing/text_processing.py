@@ -12,6 +12,9 @@ def create_items_from_text(text: str, min_words_cnt, split_paragraphs, merge_par
     if min_words_cnt > 0:
         paragraphs = [p for p in paragraphs if p['cnt'] >= min_words_cnt]
 
+    if len(paragraphs) == 0:
+        return []
+
     if not merge_paragraphs:
         return [p['text'] for p in paragraphs]
 
