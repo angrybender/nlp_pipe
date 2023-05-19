@@ -68,9 +68,10 @@ for dataset_file in dataset_preloaded_files:
             text, args.min_words_paragraphs,  args.split_by_paragraphs == 'Y', args.merge_short_paragraphs == 'Y'
         )
 
-        vectors = vectorization_model.fit_transform(items, False)
-        indexer.index_data([{'text': item} for item in items], [v.tolist() for v in vectors], indexer_start_pk_id)
-        indexer_start_pk_id += len(items)
+        if items:
+            vectors = vectorization_model.fit_transform(items, False)
+            indexer.index_data([{'text': item} for item in items], [v.tolist() for v in vectors], indexer_start_pk_id)
+            indexer_start_pk_id += len(items)
 
         progress_bar.update()
         processed_cnt += 1
