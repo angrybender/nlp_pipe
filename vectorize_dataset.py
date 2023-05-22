@@ -23,6 +23,7 @@ parser.add_argument('--dataset_text_field', type=str, help='Field in the JSON/CS
 parser.add_argument('--split_by_paragraphs', choices=['Y'], default='', help='Split each items by LR')
 parser.add_argument('--merge_short_paragraphs', choices=['Y'], default='', help='Recursive merge paragraphs less than AVG words')
 parser.add_argument('--min_words_paragraphs', type=int, default=0, help='Filter paragraphs less than')
+parser.add_argument('--overlap_paragraphs', type=int, default=0, help='Create "shingles" from paragraphs')
 
 # vectorization params:
 parser.add_argument('--vectorizer_model_path', type=str, required=True, help='Path to the vectorizer model')
@@ -43,6 +44,8 @@ dataset_files = get_dataset_files(args.dataset_path)
 if not dataset_files:
     raise Exception(f"Empty path: {args.dataset_path}")
 
+
+assert args.overlap_paragraphs == 0 or args.overlap_paragraphs >= 2
 
 total_items_count = 0
 dataset_preloaded_files = []
@@ -67,6 +70,12 @@ for dataset_file in dataset_preloaded_files:
         items = create_items_from_text(
             text, args.min_words_paragraphs,  args.split_by_paragraphs == 'Y', args.merge_short_paragraphs == 'Y'
         )
+
+        if args.overlap_paragraphs > 0:
+            shingles = []
+            for i in range(args.overlap_paragraphs, len(items)+1):
+                shingles.append(' '.join(items[i-args.overlap_paragraphs:i]))
+            items = shingles
 
         if items:
             vectors = vectorization_model.fit_transform(items, False)

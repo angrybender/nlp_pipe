@@ -1,10 +1,14 @@
 from typing import List
 import re
-_CLEAR_PATTERN = re.compile(r'[^а-яё\s\.\,\;:\-]+', flags=re.IGNORECASE | re.UNICODE)
+_REPLACE_PATTERNS = [
+    ('\xa0', ' '),
+    ('\u202f', '')
+]
 
 
 def create_items_from_text(text: str, min_words_cnt, split_paragraphs, merge_paragraphs) -> List[str]:
-    text = _CLEAR_PATTERN.sub('', text).strip()
+    for _from, _to in _REPLACE_PATTERNS:
+        text = text.replace(_from, _to)
 
     if not split_paragraphs and min_words_cnt > 0:
         return [text] if len(text) > min_words_cnt else []
