@@ -4,7 +4,7 @@ import argparse
 from pipe_load_dataset.helper import get_dataset_files
 from pipe_load_dataset.ADatasetFile import ADatasetFile
 from pipe_text_processing.text_processing import create_items_from_text
-from pipe_text_processing.text2vec import TextsVectorizer
+from pipe_text_processing.text2vec import BertVectorizer, BowVectorizer
 from pipe_vengine.DatasetIndexer import DatasetIndexer
 
 import logging
@@ -26,7 +26,8 @@ parser.add_argument('--min_words_paragraphs', type=int, default=0, help='Filter 
 parser.add_argument('--overlap_paragraphs', type=int, default=0, help='Create "shingles" from paragraphs')
 
 # vectorization params:
-parser.add_argument('--vectorizer_model_path', type=str, required=True, help='Path to the vectorizer model')
+parser.add_argument('--vectorizer_model', choices=['bert', 'bow'], required=True, help='Vectorozer model')
+parser.add_argument('--vectorizer_model_path', type=str, help='Path to the vectorizer model')
 parser.add_argument('--use_gpu', choices=['Y'], default='')
 
 # vector engine params:
@@ -39,13 +40,15 @@ args = parser.parse_args()
 if args.dataset_type in ['ljson', 'csv'] and not args.dataset_text_field:
     raise Exception("Set value for --dataset_text_field")
 
+assert args.overlap_paragraphs == 0 or args.overlap_paragraphs >= 2
+
+if args.vectorizer_model == 'bert' and not args.vectorizer_model_path:
+    raise Exception("Set value for --vectorizer_model_path")
+
 logger.info("Collect dataset files and statistic...")
 dataset_files = get_dataset_files(args.dataset_path)
 if not dataset_files:
     raise Exception(f"Empty path: {args.dataset_path}")
-
-
-assert args.overlap_paragraphs == 0 or args.overlap_paragraphs >= 2
 
 total_items_count = 0
 dataset_preloaded_files = []
@@ -61,7 +64,14 @@ for file_path in tqdm.tqdm(dataset_files):
 
 logger.info("Load data...")
 indexer = DatasetIndexer(args.vengine_host, args.vengine_port, args.vengine_db_name)
-vectorization_model = TextsVectorizer(args.vectorizer_model_path, args.use_gpu)
+
+if args.vectorizer_model == 'bert':
+    vectorization_model = BertVectorizer(args.vectorizer_model_path, args.use_gpu)
+elif args.vectorizer_model == 'bow':
+    vectorization_model = BowVectorizer()
+else:
+    raise Exception("Unknown --vectorizer_model")
+
 progress_bar = tqdm.tqdm(total=total_items_count)
 processed_cnt = 0
 indexer_start_pk_id = args.vengine_from_id
@@ -78,8 +88,8 @@ for dataset_file in dataset_preloaded_files:
             items = shingles
 
         if items:
-            vectors = vectorization_model.fit_transform(items, False)
-            indexer.index_data([{'text': item} for item in items], [v.tolist() for v in vectors], indexer_start_pk_id)
+            vectors = vectorization_model.fit_transform(items)
+            indexer.index_data([{'text': item} for item in items], vectors, indexer_start_pk_id)
             indexer_start_pk_id += len(items)
 
         progress_bar.update()
