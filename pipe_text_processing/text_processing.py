@@ -1,14 +1,20 @@
 from typing import List
 import re
+import unicodedata
 _REPLACE_PATTERNS = [
     ('\xa0', ' '),
     ('\u202f', '')
 ]
 
 
+def _strip_accents(s):
+    return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+
+
 def create_items_from_text(text: str, min_words_cnt, split_paragraphs, merge_paragraphs) -> List[str]:
     for _from, _to in _REPLACE_PATTERNS:
         text = text.replace(_from, _to)
+    text = _strip_accents(text)
 
     if not split_paragraphs and min_words_cnt > 0:
         return [text] if len(text) > min_words_cnt else []
