@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  llm-service-notebook:
+    image: jupyter/datascience-notebook
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/home/jovyan/work
+    environment:
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+
+  llm-service-vector-db:
+    image: qdrant/qdrant
+    ports:
+      - "8889:6333"
+    volumes:
+      - ${DB_PATH}:/qdrant/storage
